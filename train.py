@@ -5,6 +5,7 @@ import logging
 from time import time
 from tensorboardX import SummaryWriter
 import argparse
+import wandb
 
 import torch
 from torch.optim.lr_scheduler import StepLR
@@ -65,13 +66,25 @@ def train(args):
     sched = StepLR(opt, 10, 0.1)
     writer = SummaryWriter(logdir=args.logdir)
 
+    wandb.login()
+    run = wandb.init(
+        # Set the project where this run will be logged
+        project="HDMapNet",
+        # Track hyperparameters and run metadata
+        config={
+            "learning_rate": sched.get_lr(),
+            "epochs": args.nepochs,
+        },
+    )
     loss_fn = SimpleLoss(args.pos_weight).cuda()
     embedded_loss_fn = DiscriminativeLoss(args.embedding_dim, args.delta_v, args.delta_d).cuda()
     direction_loss_fn = torch.nn.BCELoss(reduction='none')
 
     model.train()
     counter = 0
+    best_score = 0
     last_idx = len(train_loader) - 1
+    wandb.watch(model, loss_fn, log="all")
     for epoch in range(args.nepochs):
         for batchi, (imgs, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans,
                      yaw_pitch_roll, semantic_gt, instance_gt, direction_gt) in enumerate(train_loader):
@@ -116,6 +129,7 @@ def train(args):
                             f"Time: {t1-t0:>7.4f}    "
                             f"Loss: {final_loss.item():>7.4f}    "
                             f"IOU: {np.array2string(iou[1:].numpy(), precision=3, floatmode='fixed')}")
+                wandb.log({"train IOU": np.mean(iou[1:].numpy()), "loss": final_loss.item()})
 
                 write_log(writer, iou, 'train', counter)
                 writer.add_scalar('train/step_time', t1 - t0, counter)
@@ -131,10 +145,16 @@ def train(args):
         logger.info(f"EVAL[{epoch:>2d}]:    "
                     f"IOU: {np.array2string(iou[1:].numpy(), precision=3, floatmode='fixed')}")
 
+        wandb.log({"val IOU": np.mean(iou[1:].numpy())})
         write_log(writer, iou, 'eval', counter)
-        model_name = os.path.join(args.logdir, f"model{epoch}.pt")
-        torch.save(model.state_dict(), model_name)
-        logger.info(f"{model_name} saved")
+
+        score = np.mean(iou[1:].numpy())
+        if score > best_score:
+            model_name = os.path.join(args.logdir, f"model{epoch}.pt")
+            torch.save(model.state_dict(), model_name)
+            logger.info(f"{model_name} saved")
+            best_score = score
+
         model.train()
 
         sched.step()
@@ -156,7 +176,7 @@ if __name__ == '__main__':
     parser.add_argument("--nepochs", type=int, default=30)
     parser.add_argument("--max_grad_norm", type=float, default=5.0)
     parser.add_argument("--pos_weight", type=float, default=2.13)
-    parser.add_argument("--bsz", type=int, default=4)
+    parser.add_argument("--bsz", type=int, default=2)
     parser.add_argument("--nworkers", type=int, default=10)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--weight_decay", type=float, default=1e-7)
