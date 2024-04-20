@@ -1,16 +1,11 @@
 # HDMapNet
 
-**HDMapNet: An Online HD Map Construction and Evaluation Framework**
-
-**ICRA 2022, CVPR 2021 Workshop best paper nominee**
-
-[Qi Li](https://liqi17thu.github.io/), [Yue Wang](https://people.csail.mit.edu/yuewang/), [Yilun Wang](https://scholar.google.com.hk/citations?user=nUyTDosAAAAJ&hl=en/), [Hang Zhao](http://people.csail.mit.edu/hangzhao/)
-
-**[[Paper](https://arxiv.org/abs/2107.06307)] [[Project Page](https://tsinghua-mars-lab.github.io/HDMapNet/)] [[5-min video](https://www.youtube.com/watch?v=AJ-rToTN8y8)]**
+**Repository fork with additional features for training and inference of the model**
 
 **TODO**
 - [x] Wandb logging;
 - [x] Checkpoint saving (best score and last epoch);
+- [x] New requirements. 
 - [ ] Docker container. 
 - [ ] Model config. 
 
