@@ -19,12 +19,10 @@ Please file an [issue](https://github.com/Tsinghua-MARS-Lab/HDMapNet-dev/issues)
 
 2. Install dependencies by running
 ```
-pip install -r requirement.txt
+pip install -r requirements.txt
 ```
 
-3. Install pytorch from `https://pytorch.org/get-started/locally/`
-   
-4. Install pytorch scatter from `https://pytorch-geometric.readthedocs.io/en/latest/notes/installation.html`
+3. Install pytorch from `https://pytorch.org/get-started/locally/` (optional)
 
 ### Label
 Run `python vis_label.py ` for demo of vectorized labels. The visualizations are in `dataset/nuScenes/samples/GT`.
@@ -39,7 +37,7 @@ Before running the evaluation code, you should get the `submission.json` file fi
 python export_gt_to_json.py
 ```
 
-Run `python evaluate.py --result_path [submission file path]` for evaluation. The script accepts vectorized or rasterized maps as input. For vectorized map, We firstly rasterize the vectors to map to do evaluation. For rasterized map, you should make sure the line width=1.
+Run `python evaluate.py --modelf [checkpoint path]` for evaluation. The script accepts vectorized or rasterized maps as input. For vectorized map, We firstly rasterize the vectors to map to do evaluation. For rasterized map, you should make sure the line width=1.
 
 Below is the format for vectorized submission:
 
