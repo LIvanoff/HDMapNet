@@ -51,7 +51,8 @@ def train(args):
     }
 
     train_loader, val_loader = semantic_dataset(args.version, args.dataroot, data_conf, args.bsz, args.nworkers)
-    model = get_model(args.model, data_conf, args.instance_seg, args.embedding_dim, args.direction_pred, args.angle_class)
+    model = get_model(args.model, data_conf, args.instance_seg, args.embedding_dim, args.direction_pred,
+                      args.angle_class)
 
     if args.finetune:
         model.load_state_dict(torch.load(args.modelf), strict=False)
@@ -66,26 +67,29 @@ def train(args):
     sched = StepLR(opt, 10, 0.1)
     writer = SummaryWriter(logdir=args.logdir)
 
-    wandb.login()
-    run = wandb.init(
-        # Set the project where this run will be logged
-        project="HDMapNet",
-        # Track hyperparameters and run metadata
-        config={
-            "learning_rate": sched.get_lr(),
-            "epochs": args.nepochs,
-        },
-    )
     loss_fn = SimpleLoss(args.pos_weight).cuda()
     embedded_loss_fn = DiscriminativeLoss(args.embedding_dim, args.delta_v, args.delta_d).cuda()
     direction_loss_fn = torch.nn.BCELoss(reduction='none')
+
+    if args.wandb:
+        wandb.login()
+        run = wandb.init(
+            # Set the project where this run will be logged
+            project="HDMapNet",
+            # Track hyperparameters and run metadata
+            config={
+                "learning_rate": sched.get_last_lr(),
+                "epochs": args.nepochs,
+            },
+        )
+        wandb.watch(model, loss_fn, log="all")
 
     model.train()
     counter = 0
     best_score = 0
     last_idx = len(train_loader) - 1
-    wandb.watch(model, loss_fn, log="all")
     for epoch in range(args.nepochs):
+        iou_train = 0
         for batchi, (imgs, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans,
                      yaw_pitch_roll, semantic_gt, instance_gt, direction_gt) in enumerate(train_loader):
             t0 = time()
@@ -125,12 +129,11 @@ def train(args):
             if counter % 10 == 0:
                 intersects, union = get_batch_iou(onehot_encoding(semantic), semantic_gt)
                 iou = intersects / (union + 1e-7)
-                logger.info(f"TRAIN[{epoch:>3d}]: [{batchi:>4d}/{last_idx}]    "
-                            f"Time: {t1-t0:>7.4f}    "
+                logger.info(f"TRAIN[{epoch:>3d}/{args.nepochs:>3d}]: [{batchi:>4d}/{last_idx}]    "
+                            f"Time: {t1 - t0:>7.4f}    "
                             f"Loss: {final_loss.item():>7.4f}    "
                             f"IOU: {np.array2string(iou[1:].numpy(), precision=3, floatmode='fixed')}")
-                wandb.log({"train IOU": np.mean(iou[1:].numpy()), "loss": final_loss.item()})
-
+                iou_train += np.mean(iou[1:].numpy())
                 write_log(writer, iou, 'train', counter)
                 writer.add_scalar('train/step_time', t1 - t0, counter)
                 writer.add_scalar('train/seg_loss', seg_loss, counter)
@@ -142,18 +145,26 @@ def train(args):
                 writer.add_scalar('train/angle_diff', angle_diff, counter)
 
         iou = eval_iou(model, val_loader)
+        iou_val = np.mean(iou[1:].numpy())
+        iou_train = iou_train / len(train_loader)
         logger.info(f"EVAL[{epoch:>2d}]:    "
-                    f"IOU: {np.array2string(iou[1:].numpy(), precision=3, floatmode='fixed')}")
+                    f"IOU: {np.array2string(iou_val, precision=3, floatmode='fixed')}")
 
-        wandb.log({"val IOU": np.mean(iou[1:].numpy())})
+        if args.wandb:
+            wandb.log({"train IOU": iou_train, "val IOU": iou_val, "loss": final_loss.item()})
+
         write_log(writer, iou, 'eval', counter)
 
         score = np.mean(iou[1:].numpy())
         if score > best_score:
-            model_name = os.path.join(args.logdir, f"model{epoch}.pt")
+            model_name = os.path.join(args.logdir, f"best_score.pt")
             torch.save(model.state_dict(), model_name)
             logger.info(f"{model_name} saved")
             best_score = score
+        if epoch == args.nepochs - 1:
+            model_name = os.path.join(args.logdir, f"last_epoch.pt")
+            torch.save(model.state_dict(), model_name)
+            logger.info(f"{model_name} saved")
 
         model.train()
 
@@ -164,19 +175,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='HDMapNet training.')
     # logging config
     parser.add_argument("--logdir", type=str, default='./runs')
+    parser.add_argument("--wandb", action='store_true')
 
     # nuScenes config
     parser.add_argument('--dataroot', type=str, default='dataset/nuScenes/')
     parser.add_argument('--version', type=str, default='v1.0-mini', choices=['v1.0-trainval', 'v1.0-mini'])
 
     # model config
-    parser.add_argument("--model", type=str, default='HDMapNet_cam')
+    parser.add_argument("--model", type=str, default='HDMapNet_fusion')
 
     # training config
     parser.add_argument("--nepochs", type=int, default=30)
     parser.add_argument("--max_grad_norm", type=float, default=5.0)
     parser.add_argument("--pos_weight", type=float, default=2.13)
-    parser.add_argument("--bsz", type=int, default=2)
+    parser.add_argument("--bsz", type=int, default=1)
     parser.add_argument("--nworkers", type=int, default=10)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--weight_decay", type=float, default=1e-7)
