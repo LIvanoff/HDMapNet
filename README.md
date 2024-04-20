@@ -5,6 +5,7 @@
 **TODO**
 - [x] Wandb logging;
 - [x] Checkpoint saving (best score and last epoch);
+- [x] New requirements. 
 - [ ] Docker container. 
 - [ ] Model config. 
 
