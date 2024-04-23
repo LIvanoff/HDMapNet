@@ -13,12 +13,11 @@
 ### Preparation
 1. Download  [nuScenes dataset](https://www.nuscenes.org/) and put it to `dataset/` folder.
 
-2. Install dependencies 
-- python==3.8
-- tqdm
-- numpy
-- matplotlib
-- nuscenes-devkit
+2. Install dependencies (python==3.8)
+- `pip install tqdm`
+- `pip install numpy`
+- `pip install matplotlib`
+- `pip install nuscenes-devkit`
 
 3. Install pytorch from `https://pytorch.org/get-started/locally/`
 
