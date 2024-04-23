@@ -20,7 +20,7 @@
 - matplotlib
 - nuscenes-devkit
 
-4. Install pytorch from `https://pytorch.org/get-started/locally/`
+3. Install pytorch from `https://pytorch.org/get-started/locally/`
 
 ### Label
 Run `python vis_label.py ` for demo of vectorized labels. The visualizations are in `dataset/nuScenes/samples/GT`.
