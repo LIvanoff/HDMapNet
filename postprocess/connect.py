@@ -86,7 +86,7 @@ def connect_by_step(coords, direction_mask, sorted_points, taken_direction, step
 
 def connect_by_direction(coords, direction_mask, step=5, per_deg=10):
     sorted_points = [deepcopy(coords[random.randint(0, coords.shape[0]-1)])]
-    taken_direction = np.zeros_like(direction_mask, dtype=np.bool)
+    taken_direction = np.zeros_like(direction_mask, dtype=np.bool_)
 
     connect_by_step(coords, direction_mask, sorted_points, taken_direction, step, per_deg)
     sorted_points.reverse()
