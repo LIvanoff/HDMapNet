@@ -5,8 +5,7 @@
 **TODO**
 - [x] Wandb logging;
 - [x] Checkpoint saving (best score and last epoch);
-- [x] New requirements. 
-- [ ] Docker container. 
+- [ ] Docker container;
 - [ ] Model config. 
 
 
@@ -14,11 +13,13 @@
 ### Preparation
 1. Download  [nuScenes dataset](https://www.nuscenes.org/) and put it to `dataset/` folder.
 
-2. Install dependencies by running
-```shell
-pip install -r requirements.txt
-```
-3. Install pytorch from `https://pytorch.org/get-started/locally/` (optional)
+2. Install dependencies (python==3.8)
+- `pip install tqdm`
+- `pip install numpy`
+- `pip install matplotlib`
+- `pip install nuscenes-devkit`
+
+3. Install pytorch from `https://pytorch.org/get-started/locally/`
 
 ### Label
 Run `python vis_label.py ` for demo of vectorized labels. The visualizations are in `dataset/nuScenes/samples/GT`.
