@@ -1,6 +1,7 @@
 import argparse
 import numpy as np
 from PIL import Image
+import os
 
 import matplotlib.pyplot as plt
 
@@ -48,10 +49,30 @@ def vis_segmentation(model, val_loader):
                 plt.savefig(imname)
                 plt.close()
 
+def creat_gif(save_dir):
+    frames = []
+    frames_list = os.listdir(save_dir)
+    gif_name = 'result.gif'
 
-def vis_vector(model, val_loader, angle_class):
+    for frame in frames_list:
+        frame = Image.open(os.path.join(save_dir, frame))
+        frames.append(frame)
+
+    # Берем первый кадр и в него добавляем оставшееся кадры.
+    frames[0].save(
+        os.path.join(save_dir, gif_name),
+        save_all=True,
+        append_images=frames[1:],  # игнорируем первый кадр.
+        optimize=True,
+        duration=400,
+        loop=0)
+
+
+def vis_vector(model, val_loader, angle_class, save_dir):
     model.eval()
     car_img = Image.open('icon/car.png')
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
     with torch.no_grad():
         for batchi, (imgs, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans, yaw_pitch_roll, segmentation_gt, instance_gt, direction_gt) in enumerate(val_loader):
@@ -61,6 +82,10 @@ def vis_vector(model, val_loader, angle_class):
                                                        lidar_mask.cuda(), car_trans.cuda(), yaw_pitch_roll.cuda())
 
             for si in range(segmentation.shape[0]):
+                # print(segmentation[si])
+                # print(embedding[si])
+                # print(direction[si])
+                # print(angle_class)
                 coords, _, _ = vectorize(segmentation[si], embedding[si], direction[si], angle_class)
 
                 for coord in coords:
@@ -72,7 +97,7 @@ def vis_vector(model, val_loader, angle_class):
 
                 img_name = f'eval{batchi:06}_{si:03}.jpg'
                 print('saving', img_name)
-                plt.savefig(img_name)
+                plt.savefig(os.path.join(save_dir, img_name))
                 plt.close()
 
 
@@ -92,7 +117,8 @@ def main(args):
     model = get_model(args.model, data_conf, args.instance_seg, args.embedding_dim, args.direction_pred, args.angle_class)
     model.load_state_dict(torch.load(args.modelf), strict=False)
     model.cuda()
-    vis_vector(model, val_loader, args.angle_class)
+    vis_vector(model, val_loader, args.angle_class, args.save_dir)
+    creat_gif(args.save_dir)
     # vis_segmentation(model, val_loader)
 
 
@@ -104,6 +130,9 @@ if __name__ == '__main__':
     # nuScenes config
     parser.add_argument('--dataroot', type=str, default='dataset/nuScenes/')
     parser.add_argument('--version', type=str, default='v1.0-mini', choices=['v1.0-trainval', 'v1.0-mini'])
+
+    # save directory
+    parser.add_argument('--save_dir', type=str, default='result')
 
     # model config
     parser.add_argument("--model", type=str, default='HDMapNet_cam')
