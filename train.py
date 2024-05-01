@@ -88,6 +88,7 @@ def train(args):
     counter = 0
     best_score = 0
     last_idx = len(train_loader) - 1
+    logger.info(f"--------------<START TRAIN>--------------")
     for epoch in range(args.nepochs):
         iou_train = 0
         for batchi, (imgs, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans,
@@ -129,7 +130,7 @@ def train(args):
             if counter % 10 == 0:
                 intersects, union = get_batch_iou(onehot_encoding(semantic), semantic_gt)
                 iou = intersects / (union + 1e-7)
-                logger.info(f"TRAIN[{epoch:>3d}/{args.nepochs:>3d}]: [{batchi:>4d}/{last_idx}]    "
+                logger.info(f"TRAIN[{epoch+1:>2d} /{args.nepochs:>2d}]: [{batchi:>4d}/{last_idx}]    "
                             f"Time: {t1 - t0:>7.4f}    "
                             f"Loss: {final_loss.item():>7.4f}    "
                             f"IOU: {np.array2string(iou[1:].numpy(), precision=3, floatmode='fixed')}")
@@ -144,6 +145,9 @@ def train(args):
                 writer.add_scalar('train/final_loss', final_loss, counter)
                 writer.add_scalar('train/angle_diff', angle_diff, counter)
 
+            if args.wandb:
+                wandb.log({"batch loss": final_loss.item()})
+
         iou = eval_iou(model, val_loader)
         iou_val = np.mean(iou[1:].numpy())
         iou_train = iou_train / len(train_loader)
@@ -157,12 +161,12 @@ def train(args):
 
         score = np.mean(iou[1:].numpy())
         if score > best_score:
-            model_name = os.path.join(args.logdir, f"best_score.pt")
+            model_name = os.path.join(args.logdir, "best_score.pt")
             torch.save(model.state_dict(), model_name)
             logger.info(f"{model_name} saved")
             best_score = score
         if epoch == args.nepochs - 1:
-            model_name = os.path.join(args.logdir, f"last_epoch.pt")
+            model_name = os.path.join(args.logdir, "last_epoch.pt")
             torch.save(model.state_dict(), model_name)
             logger.info(f"{model_name} saved")
 
