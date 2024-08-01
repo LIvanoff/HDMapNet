@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 from PIL import Image
 import os
+import cv2
 
 import matplotlib.pyplot as plt
 
@@ -67,6 +68,39 @@ def creat_gif(save_dir):
         duration=400,
         loop=0)
 
+def create_gif_and_video(save_dir):
+    frames = []
+    frames_list = sorted(os.listdir(save_dir))
+    frames_list = sorted(frames_list, key=lambda f: int(f.split('.')[0]))
+
+    for frame in frames_list:
+        image = Image.open(os.path.join(save_dir, frame))
+        frames.append(image)
+
+    # Берем первый кадр и в него добавляем оставшееся кадры.
+    frames[0].save(
+        os.path.join(save_dir, 'result.gif'),
+        save_all=True,
+        append_images=frames[1:],  # игнорируем первый кадр.
+        optimize=True,
+        duration=300,
+        loop=0)
+
+    image = cv2.imread(os.path.join(save_dir, frames_list[0]))
+    height, width, _ = image.shape
+
+    # Create a video writer object
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    writer = cv2.VideoWriter(os.path.join(save_dir, 'result.mp4'), fourcc, 5, (width, height))
+
+    # Iterate over each image file and add it to the video
+    for frame in frames_list:
+        image = cv2.imread(os.path.join(save_dir, frame))
+        writer.write(image)
+
+    # Release the writer to save the video
+    writer.release()
+
 
 def vis_vector(model, val_loader, angle_class, save_dir):
     model.eval()
@@ -74,22 +108,24 @@ def vis_vector(model, val_loader, angle_class, save_dir):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    with torch.no_grad():
-        for batchi, (imgs, trans, rots, intrins, post_trans, post_rots, lidar_data, lidar_mask, car_trans, yaw_pitch_roll, segmentation_gt, instance_gt, direction_gt) in enumerate(val_loader):
+    color_map = {0: 'r', 1: 'b', 2: 'g'}
 
-            segmentation, embedding, direction = model(imgs.cuda(), trans.cuda(), rots.cuda(), intrins.cuda(),
-                                                       post_trans.cuda(), post_rots.cuda(), lidar_data.cuda(),
-                                                       lidar_mask.cuda(), car_trans.cuda(), yaw_pitch_roll.cuda())
+    with torch.no_grad():
+        for batchi, (lidar_data, lidar_mask, segmentation_gt, instance_gt, direction_gt) in enumerate(val_loader): # imgs, trans, rots, intrins, post_trans, post_rots, , car_trans, yaw_pitch_roll,
+
+            segmentation, embedding, direction = model(lidar_data.cuda(),
+                                                       lidar_mask.cuda()) #imgs.cuda(), trans.cuda(), rots.cuda(), intrins.cuda(),post_trans.cuda(), post_rots.cuda(), , car_trans.cuda(), yaw_pitch_roll.cuda()
 
             for si in range(segmentation.shape[0]):
                 # print(segmentation[si])
                 # print(embedding[si])
                 # print(direction[si])
                 # print(angle_class)
-                coords, _, _ = vectorize(segmentation[si], embedding[si], direction[si], angle_class)
+                coords, _, line_types = vectorize(segmentation[si], embedding[si], direction[si], angle_class)
 
-                for coord in coords:
-                    plt.plot(coord[:, 0], coord[:, 1], linewidth=5)
+
+                for coord, line_type in zip(coords, line_types):
+                    plt.plot(coord[:, 0], coord[:, 1], linewidth=5, c=color_map[line_type])
 
                 plt.xlim((0, segmentation.shape[3]))
                 plt.ylim((0, segmentation.shape[2]))
@@ -119,6 +155,7 @@ def main(args):
     model.cuda()
     vis_vector(model, val_loader, args.angle_class, args.save_dir)
     creat_gif(args.save_dir)
+    # create_gif_and_video(args.save_dir)
     # vis_segmentation(model, val_loader)
 
 
@@ -135,7 +172,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_dir', type=str, default='result')
 
     # model config
-    parser.add_argument("--model", type=str, default='HDMapNet_cam')
+    parser.add_argument("--model", type=str, default='HDMapNet_lidar')
 
     # training config
     parser.add_argument("--nepochs", type=int, default=30)
