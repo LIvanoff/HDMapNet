@@ -1,0 +1,74 @@
+<launch>
+    <!-- tasks -->
+    <arg name="hdmap" default="false" />
+    <arg name="semantic_segmentation" default="true" />
+    <arg name="publish_joint_pc" default="true" />
+
+    <!-- model config -->
+    <arg name="model" default="HDMapNet_lidar" />
+    <arg name="modelf" default="$(find hdmapnet_pkg)/scripts/checkpoints/best_score.pt" />
+    <arg name="seg_model" default="$(find hdmapnet_pkg)/scripts/Polarseg/pretrained_weight/SemKITTI_PolarSeg.pt" />
+    <arg name="seg_arch_cfg" default="$(find hdmapnet_pkg)/scripts/config/resnet_nuscenes.yaml" />
+    <arg name="seg_data_cfg" default="$(find hdmapnet_pkg)/scripts/config/nuscenes.yaml" />
+    <arg name="bsz" default="1" />
+    <arg name="num_lidar_feats" default="4" />
+    
+
+    <!-- car image-->
+    <arg name="image_car" default="$(find hdmapnet_pkg)/scripts/icon/car.png" />
+
+    <!-- data config -->
+    <arg name="thickness" default="5" />
+    <arg name="xbound" default="[-30.0, 30.0, 0.15]" />
+    <arg name="ybound" default="[-15.0, 15.0, 0.15]" />
+    <arg name="zbound" default="[-10.0, 10.0, 20.0]" />
+    <arg name="dbound" default="[4.0, 45.0, 1.0]" />
+
+    <!-- ROS topics -->
+    <arg name="output_topic" default="/hdmap" />
+    <arg name="save_dir" default="/result" />
+    <arg name="save_result" default="true" />
+
+    <!-- embedding config -->
+    <arg name="instance_seg" default="true" />
+    <arg name="embedding_dim" default="16" />
+    <arg name="delta_v" default="0.5" />
+    <arg name="delta_d" default="3.0" />
+
+    <!-- direction config -->
+    <arg name="direction_pred" default="true" />
+    <arg name="angle_class" default="36" />
+
+    <node pkg="hdmapnet_pkg" name="hdmapnet_node" type="hdmapnet_node.py" output="screen">
+        <param name="hdmap" value="$(arg hdmap)" />
+        <param name="semantic_segmentation" value="$(arg semantic_segmentation)" />
+        <param name="publish_joint_pc" value="$(arg publish_joint_pc)" />
+
+        <param name="model_type" value="$(arg model)" />
+        <param name="modelf" value="$(arg modelf)" />
+        <param name="seg_model" value="$(arg seg_model)" />
+        <param name="seg_arch_cfg" value="$(arg seg_arch_cfg)" />
+        <param name="seg_data_cfg" value="$(arg seg_data_cfg)" />
+        <param name="bsz" value="$(arg bsz)" />
+        <param name="num_lidar_feats" value="$(arg num_lidar_feats)" />
+
+        <param name="image_car" value="$(arg image_car)" />
+
+        <param name="xbound" value="$(arg xbound)" />
+        <param name="ybound" value="$(arg ybound)" />
+        <param name="zbound" value="$(arg zbound)" />
+        <param name="dbound" value="$(arg dbound)" />
+
+        <!-- <param name="input_cloud" value="$(arg input_cloud)" /> -->
+        <param name="output_topic" value="$(arg output_topic)" />
+
+        <param name="instance_seg" value="$(arg instance_seg)" />
+        <param name="embedding_dim" value="$(arg embedding_dim)" />
+        <param name="delta_v" value="$(arg delta_v)" />
+        <param name="delta_d" value="$(arg delta_d)" />
+
+        <param name="direction_pred" value="$(arg direction_pred)" />
+        <param name="angle_class" value="$(arg angle_class)" />
+    </node>
+
+</launch>
