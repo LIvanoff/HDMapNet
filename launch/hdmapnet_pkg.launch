@@ -8,8 +8,6 @@
     <arg name="model" default="HDMapNet_lidar" />
     <arg name="modelf" default="$(find hdmapnet_pkg)/scripts/checkpoints/best_score.pt" />
     <arg name="seg_model" default="$(find hdmapnet_pkg)/scripts/Polarseg/pretrained_weight/Nuscenes_PolarSeg.pt" />
-    <arg name="seg_arch_cfg" default="$(find hdmapnet_pkg)/scripts/config/resnet_nuscenes.yaml" />
-    <arg name="seg_data_cfg" default="$(find hdmapnet_pkg)/scripts/config/nuscenes.yaml" />
     <arg name="bsz" default="1" />
     <arg name="num_lidar_feats" default="4" />
     
