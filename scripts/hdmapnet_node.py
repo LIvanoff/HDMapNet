@@ -131,10 +131,10 @@ class HDMapNetNode:
             circular_padding = True
 
             # prepare miou fun
-            # unique_label_str = list(map_name_from_segmentation_class_to_segmentation_index)[1:]
-            # unique_label = np.asarray([map_name_from_segmentation_class_to_segmentation_index[s] for s in unique_label_str]) - 1
-            unique_label=np.asarray(sorted(list(SemKITTI_label_name.keys())))[1:] - 1
-            unique_label_str=[SemKITTI_label_name[x] for x in unique_label+1]
+            unique_label_str = list(map_name_from_segmentation_class_to_segmentation_index)[1:]
+            unique_label = np.asarray([map_name_from_segmentation_class_to_segmentation_index[s] for s in unique_label_str]) - 1
+            # unique_label=np.asarray(sorted(list(SemKITTI_label_name.keys())))[1:] - 1
+            # unique_label_str=[SemKITTI_label_name[x] for x in unique_label+1]
 
             # prepare model
             Unet = BEV_Unet(n_class=len(unique_label), n_height=compression_model, input_batch_norm=True, dropout=0.5,
